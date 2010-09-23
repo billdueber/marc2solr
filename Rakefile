@@ -10,9 +10,19 @@ begin
     gem.email = "bill@dueber.com"
     gem.homepage = "http://github.com/billdueber/marc2solr"
     gem.authors = ["BillDueber"]
+    
+    gem.add_dependency 'marc4j4r', '>=1.1.0'
+    gem.add_dependency 'jruby_streaming_update_solr_server', '>=0.4.1'
+    gem.add_dependency 'marcspec', '>= 1.5.1'
+    gem.add_dependency 'threach', '>= 0.2.0'
+
     gem.add_development_dependency "rspec", ">= 1.2.9"
     gem.add_development_dependency "yard", ">= 0"
-    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
+
+    gem.bindir = 'bin'
+    gem.executables << 'fromsolrmarc'
+    gem.executables << 'marc2solr'
+    
   end
   Jeweler::GemcutterTasks.new
 rescue LoadError
