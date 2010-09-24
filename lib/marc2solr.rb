@@ -1,10 +1,22 @@
 require 'rubygems'
 require 'logger'
+require 'rjack-logback'
+
+
+newlevel = nil
+unless $LOG
+  $LOG = RJack::SLF4J["marc2solr.gem" ]
+  RJack::Logback['marc2solr.gem'].level = RJack::Logback::DEBUG
+end
+
+$LOG = RJack::SLF4J["marc2solr.gem" ]
+
+
 
 module MARC2Solr
   
   class Configuration
-    
+        
     VALIDOPTIONS = [
       # What to do    
       :benchmark, :dry_run, :printmarc, :printdoc, :clearsolr, :commit,
@@ -25,7 +37,9 @@ module MARC2Solr
       :marctype, :encoding,
     ]
     
+    
     def initialize
+       
       @config = {}
       
       # Basic settings
@@ -40,12 +54,17 @@ module MARC2Solr
       @config[:encoding] = 'guess'
     end
     
+    def pretty_print(pp)
+      pp.pp @config
+    end
+    
     def method_missing(methodSymbol, arg=nil)
       methodSymbol = methodSymbol.to_s.gsub(/=$/, '').to_sym
       if VALIDOPTIONS.include? methodSymbol
         unless arg.nil?
           @config[methodSymbol] = arg 
-          puts "Set #{methodSymbol} to #{arg}"
+          $LOG.warn "Set #{methodSymbol} to #{arg}"
+          sleep 1
         end
         return @config[methodSymbol]
       else

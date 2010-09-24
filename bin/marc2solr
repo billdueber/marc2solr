@@ -1,2 +1,72 @@
+#!/usr/bin/env jruby
 require 'rubygems'
-require 'trollop'
+require 'pp'
+require 'rjack-logback'
+
+# require 'trollop'
+
+
+##########################################################################
+# Get the MARC file from the last argument and make sure it can be opened
+##########################################################################
+
+marcfilename = ARGV.pop
+ARGV.push '--help' unless marcfilename 
+unless File.readable?(marcfilename)
+  STDERR.puts "File '#{marcfilename}' not readable"
+  ARGV.push '--help'
+end
+
+##########################################################################
+# Get the command-line args for log setup and later overriding of config
+# file settings
+##########################################################################
+
+opts = {'logfile' => 'ddd'}
+
+##########################################################################
+# Set up logging
+##########################################################################
+
+RJack::Logback.configure do
+  appender = RJack::Logback::FileAppender.new( opts['logfile'], false ) do |a|
+    a.layout = RJack::Logback::PatternLayout.new("%-5level %date{HH:mm:ss} %5r %-20logger %msg\n")
+    a.encoding = "ISO-8859-1"
+  end
+  RJack::Logback.root.add_appender( appender )
+  RJack::Logback.root.level = RJack::Logback::WARN
+end
+
+
+$LOG = RJack::SLF4J["marc2solr" ]
+RJack::Logback['marc2solr'].level = RJack::Logback::INFO
+RJack::Logback['marc2solr.gem'].level = RJack::Logback::DEBUG
+
+
+$LOG.info "Hello..."
+
+# Require stuff that might log
+$:.unshift 'lib'
+require 'marc2solr'
+
+
+# Suck in options from all the other arguments
+
+options = MARC2Solr::Configuration.new
+ARGV.each do |filename|
+  f = File.new(filename)
+  unless f
+    STDERR.puts "Cannot open '#{filename}'; aborting"
+    Process.exit
+  end
+  options.instance_eval(f.read)
+end
+
+
+
+# Make sure we've got what we need
+
+  
+# 
+
+pp options
