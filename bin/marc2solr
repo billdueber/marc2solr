@@ -1,9 +1,73 @@
 #!/usr/bin/env jruby
 require 'rubygems'
 require 'pp'
-require 'rjack-logback'
+require 'logback-simple'
+
+$:.unshift 'lib'
+require 'marc2solr'
 
 # require 'trollop'
+# 
+# # First, get the args from Trollow
+# 
+# # What are the sub-commands? (e.g., marc2solr index ..., marc2solr delete ..., etc.)
+# 
+# SUB_COMMANDS = %w(index delete commit)
+# 
+# # We'll build up the options from the MARC2Solr::Configuration::OPTIONSCONFIG hash
+# 
+# 
+# cmd = ARGV.shift # get the subcommand
+# 
+# opts = Trollop::options do
+#   banner %q{
+# marc2solr -- deal with MARC files and Solr
+# 
+# USAGE
+# 
+# Index a marc file
+#   marc2solr index  --config ConfigFile --config OtherConfigFile --overrides <marcfile>
+# 
+# Delete by id from the specified solr
+#   marc2solr delete --config ConfigFile --config OtherConfigFile --overrides <file of ids to delete>
+# 
+# Send a "commit" to the specified solr
+#   marc2solr commit --config ConfigFile --overrides
+#   
+# 
+# GLOBAL OPTIONS
+#   }
+#   MARC2Solr::Configuration::OPTIONSCONFIG.each do |kv|
+#     k = kv[0]
+#     d = kv[1]
+#     next if d[:only]
+#     desc = d.delete(:desc)
+#     opt k, desc, d
+#   end
+#   
+#   [:index].each do |cmdsym|
+#     banner "\n\nOther options for command '#{cmdsym.to_s}'"
+#     MARC2Solr::Configuration::OPTIONSCONFIG.each do |kv|
+#       k = kv[0]
+#       d = kv[1]
+#       next unless d[:only] and d[:only].include? cmdsym
+#       desc = d.delete(:desc)
+#       opt k, desc, d
+#     end
+#   end
+#   stop_on SUB_COMMANDS  
+# end
+
+opts = MARC2Solr::Configuration.new
+
+puts "Command is #{opts.command}"
+puts "Benchmark: #{opts.benchmark}"
+puts "Leftovers are #{opts.rest.join(' ')}"
+
+
+
+
+__END__
 
 
 ##########################################################################
@@ -20,34 +84,18 @@ end
 ##########################################################################
 # Get the command-line args for log setup and later overriding of config
 # file settings
+#
 ##########################################################################
 
-opts = {'logfile' => 'ddd'}
+
+
 
 ##########################################################################
 # Set up logging
 ##########################################################################
-
-RJack::Logback.configure do
-  appender = RJack::Logback::FileAppender.new( opts['logfile'], false ) do |a|
-    a.layout = RJack::Logback::PatternLayout.new("%-5level %date{HH:mm:ss} %5r %-20logger %msg\n")
-    a.encoding = "ISO-8859-1"
-  end
-  RJack::Logback.root.add_appender( appender )
-  RJack::Logback.root.level = RJack::Logback::WARN
-end
-
-
-$LOG = RJack::SLF4J["marc2solr" ]
-RJack::Logback['marc2solr'].level = RJack::Logback::INFO
-RJack::Logback['marc2solr.gem'].level = RJack::Logback::DEBUG
-
-
-$LOG.info "Hello..."
-
-# Require stuff that might log
-$:.unshift 'lib'
-require 'marc2solr'
+LOG = Logback::Simple::Logger.singleton
+Logback::Simple.loglevel = :debug
+Logback::Simple.startConsoleLogger
 
 
 # Suck in options from all the other arguments
