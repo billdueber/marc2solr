@@ -2,6 +2,7 @@ require 'rubygems'
 require 'logback-simple'
 require 'trollop'
 require 'ftools'
+require 'jruby_streaming_update_solr_server'
 
 module MARC2Solr
   
@@ -19,17 +20,32 @@ module MARC2Solr
                     :only=> [:index],
                     :short => '-B'
                    }],
-      [:dryrun,   {:desc => "Don't send anything to solr",
+     [:NObenchmark, {:desc=> "Benchmark production of each solr field",
+                   :only=> [:index],
+                  }],
+     [:dryrun,   {:desc => "Don't send anything to solr",
                     :only => [:index]
                     }],
+      [:NOdryrun,   {:desc => "Disable a previous 'dryrun' directive",
+                    :only => [:index]
+                    }],
+                    
       [:printmarc, {:desc =>"Print MARC Record (as text) to --debugfile",
                     :only => [:index],
                     :short => '-r'
-                    }],        
+                    }],
+      [:NOprintmarc, {:desc =>"Turn off printing MARC Record (as text) to --debugfile",
+                    :only => [:index],
+                    }],
       [:printdoc,  {:desc => "Print each completed document to --debugfile", 
                     :only => [:index],
                     :short => '-d'}
       ],
+      [:NOprintdoc,  {:desc => "Turn off printing each completed document to --debugfile", 
+                    :only => [:index],
+                    }
+      ],
+      
       [:debugfile, {:desc => "Where to send output from --printmarc and --printdoc (takes filename, 'STDERR', 'STDOUT', or 'NONE') (repeatable)", \
                     :default => "STDOUT",
                     :isOutfile => true,
@@ -72,6 +88,8 @@ module MARC2Solr
                     :default => "solr/biblio"}],
       [:javabin, {:desc => "Use javabin (presumes /update/bin is configured in schema.xml)", 
                       }],                      
+      [:NOjavabin, {:desc => "Don't use javabin", 
+                      }],                      
       [:logfile,   {:desc => "Name of the logfile (filename, 'STDOUT', 'STDERR', or 'NONE')", 
                     :default => "NONE",
                     :isOutfile => true,
@@ -85,6 +103,14 @@ module MARC2Solr
                        :default => 25000,
                        :only => [:delete, :index],
                        :short => '-b'}],
+      [:indexfile, {:desc => "The index file describing your specset (usually index.rb)",
+                    :type => :io,
+                    :only => [:index],
+                    }],
+      [:tmapdir,   {:desc => "Directory that contains any translation maps",
+                    :type => String,
+                    :only => [:index]
+                    }],
       [:marctype, {:desc => "Type of marc file ('bestguess', 'marcbinary'. 'marcxml', 'alephsequential', 'permissivemarc')",
                    :only => [:index],
                    :short => '-t',
@@ -115,7 +141,7 @@ module MARC2Solr
       # Load the config files
       if @cmdline[:config]
         @cmdline[:config].each do |f|
-          log.debug "Reading config-file ''#{f.path}'"
+          puts"Reading config-file ''#{f.path}'"
           self.instance_eval(f.read)
         end
       end
@@ -140,11 +166,11 @@ module MARC2Solr
       
       @cmdline.each_pair do |k,v|
         if @cmdline_given[k]
-          # puts "Send override #{k} = #{v}"
+          puts "Send override #{k} = #{v}"
           self.send(k,v) 
         else
           unless @config.has_key? k
-            # puts "Send default #{k} = #{v}"
+            puts "Send default #{k} = #{v}"
             self.send(k,v) 
           end
         end
@@ -153,6 +179,9 @@ module MARC2Solr
       @rest = ARGV
     end
     
+    def [] arg
+      return @config[arg]
+    end
     
     def command_line_opts
       @command = ARGV.shift # get the subcommand
@@ -248,6 +277,18 @@ module MARC2Solr
     def method_missing(methodSymbol, arg=:notgiven, fromCmdline = false)
       return @config[methodSymbol] if arg == :notgiven
       methodSymbol = methodSymbol.to_s.gsub(/=$/, '').to_sym
+      
+      # Deal with negatives. We only want them if the argument is true
+      if methodSymbol.to_s =~ /^NO(.*)/
+        if arg == true
+          methodSymbol = $1.to_sym
+          arg = false
+        else
+          puts "Ignoring false-valued #{methodSymbol}"
+          return # do nothing
+        end
+      end
+      
       # puts "   Setting #{methodSymbol} to #{arg}"
       if VALIDOPTIONS.has_key? methodSymbol
         conf = VALIDOPTIONS[methodSymbol]
@@ -289,12 +330,34 @@ module MARC2Solr
         else
           @config[methodSymbol] = arg 
         end
-        log.debug "Set #{methodSymbol} to #{arg}"
+        puts "Set #{methodSymbol} to #{arg}"
         return @config[methodSymbol]
       else
         raise NoMethodError, "'#{methodSymbol} is not a valid MARC2Solr configuration option for #{@cmd}"
       end
     end
+    
+    
+    # Create a SUSS from the given arguments
+    def suss
+      machine = self[:machine] or raise ArgumentError, "Need solr machine name (--machine)"
+      port = self[:port] or raise ArgumentError, "Need solr port (--port)"
+      path = self[:solrpath] or raise ArgumentError, "Need solr path (--solrpath)"
+      
+      url = 'http://' + machine + ':' + port + '/' + path.gsub(/^\//, '')
+
+      log.debug "Set suss url to #{url}"
+
+      suss = StreamingUpdateSolrServer.new(url,self[:susssize],self[:sussthreads])
+      if self[:javabin]
+        suss.setRequestWriter Java::org.apache.solr.client.solrj.impl.BinaryRequestWriter.new
+      end
+      return suss
+    end
+      
+      
+    
+    
   end
 end 
 

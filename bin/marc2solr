@@ -6,63 +6,34 @@ require 'logback-simple'
 $:.unshift 'lib'
 require 'marc2solr'
 
-# require 'trollop'
-# 
-# # First, get the args from Trollow
-# 
-# # What are the sub-commands? (e.g., marc2solr index ..., marc2solr delete ..., etc.)
-# 
-# SUB_COMMANDS = %w(index delete commit)
-# 
-# # We'll build up the options from the MARC2Solr::Configuration::OPTIONSCONFIG hash
-# 
-# 
-# cmd = ARGV.shift # get the subcommand
-# 
-# opts = Trollop::options do
-#   banner %q{
-# marc2solr -- deal with MARC files and Solr
-# 
-# USAGE
-# 
-# Index a marc file
-#   marc2solr index  --config ConfigFile --config OtherConfigFile --overrides <marcfile>
-# 
-# Delete by id from the specified solr
-#   marc2solr delete --config ConfigFile --config OtherConfigFile --overrides <file of ids to delete>
-# 
-# Send a "commit" to the specified solr
-#   marc2solr commit --config ConfigFile --overrides
-#   
-# 
-# GLOBAL OPTIONS
-#   }
-#   MARC2Solr::Configuration::OPTIONSCONFIG.each do |kv|
-#     k = kv[0]
-#     d = kv[1]
-#     next if d[:only]
-#     desc = d.delete(:desc)
-#     opt k, desc, d
-#   end
-#   
-#   [:index].each do |cmdsym|
-#     banner "\n\nOther options for command '#{cmdsym.to_s}'"
-#     MARC2Solr::Configuration::OPTIONSCONFIG.each do |kv|
-#       k = kv[0]
-#       d = kv[1]
-#       next unless d[:only] and d[:only].include? cmdsym
-#       desc = d.delete(:desc)
-#       opt k, desc, d
-#     end
-#   end
-#   stop_on SUB_COMMANDS  
-# end
-
 opts = MARC2Solr::Configuration.new
 
+# Get a master logger
+
+# Perform the command
+
+case opts.command
+when "commit"
+  # get the suss
+  # commit
+when "delete"
+  delfiles = opts.rest
+  # Make sure they can all be opened
+  # Get the suss (unless dryrun)
+  # Buzz through them in turn, keeping count
+  # log count
+when "index"
+  marcfiles = opts.rest
+  # make sure they all exist
+  # get suss unless dryrun
+  # get specset
+  
+
+
 puts "Command is #{opts.command}"
-puts "Benchmark: #{opts.benchmark}"
+puts "Benchmark: #{opts[:benchmark]}"
 puts "Leftovers are #{opts.rest.join(' ')}"
+
 
 
 
