@@ -1,45 +1,35 @@
 #!/usr/bin/env jruby
+$:.unshift 'lib'
+require 'marc2solr/marc2solr_custom'
 
 require 'rubygems'
-require 'logger'
 require 'marc4j4r'
+require 'logback-simple'
 require 'pp'
 require 'marcspec'
 require 'fileutils'
 
-$LOG = Logger.new(STDOUT)
-$LOG.level = Logger::WARN
 
 # We'll take two arguments: a .properties index file, and a new directory 
 propfile = ARGV[0]
 newdir = ARGV[1]
 
 
-# First, try to create the new directory structure
-customdir = File.dirname(__FILE__).split('/')[0..-2]
-if customdir.size == 0
-  customdir = 'lib'
-else
-  customdir = customdir.join('/') + '/lib'
-end
+$LOG = Logback::Simple::Logger.singleton('fromsolrmarc')
+Logback::Simple.loglevel = :debug
+Logback::Simple.startFileLogger("#{newdir}/fromsolrmarc.log")
 
-Dir.glob("#{customdir}/*") do |f|
-  require f
-end
+
+
+# First, try to create the new directory structure
 
 begin
   FileUtils.mkdir_p "#{newdir}/translation_maps"
   FileUtils.mkdir "#{newdir}/lib"
-  Dir.glob("#{customdir}/*").each do |f|
-    FileUtils.cp f, "#{newdir}/lib/"
-  end
 rescue Exception => e
   $LOG.debug e
 end
 
-# Fix the log so it points to the logfile
-$LOG = Logger.new("#{newdir}/fromsolrmarc.log")
-$LOG.level = Logger::WARN
 
 unless File.exist? propfile
   $LOG.error "Can't find file '#{propfile}"

@@ -1,7 +1,9 @@
 require 'rubygems'
+require 'logback-simple'
 
 module MARC2Solr
   module Custom
+    LOG = Logback::Simple::Logger.singleton
     
     # Custom routines are defined as module methods that take two arguments: a MARC4J4R record,
     # and an (optional) array of other arguments passed in. 
@@ -27,6 +29,13 @@ module MARC2Solr
     # Another for marc binary
     def self.asMARC doc, r
       return r.to_marc
+    end
+    
+    
+    # And another for marc-in-json
+    
+    def self.as_marc_in_json doc, r
+      return r.to_marc_in_json
     end
     
     # Here we get all the text from fields between (inclusive) the two tag strings in args;
@@ -105,7 +114,7 @@ module MARC2Solr
           return m[0]
         end
       rescue
-        # puts "getDate: #{r['001'].value} has no date"
+        LOG.debug "Record #{r['001']} has no valid date"
         return nil
       end
     end    

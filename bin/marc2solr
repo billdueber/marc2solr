@@ -1,91 +1,229 @@
 #!/usr/bin/env jruby
-require 'rubygems'
-require 'pp'
-require 'logback-simple'
 
 $:.unshift 'lib'
 require 'marc2solr'
+require 'marc2solr/marc2solr_custom'
+
+
+require 'rubygems'
+require 'pp'
+require 'logback-simple'
+require 'marcspec'
+require 'threach'
+
+
 
 opts = MARC2Solr::Configuration.new
 
+# pp opts
+
+
+###########################
 # Get a master logger
+###########################
+
+
+$LOG = opts.masterLogger
 
 # Perform the command
 
 case opts.command
+  
+#################
+# Commit -- just send a commit to the configured solr
+#################
+  
 when "commit"
-  # get the suss
-  # commit
+  $LOG.info "Commit to #{opts.sussURL}"
+  if opts[:dryrun]
+    $LOG.debug "Using javabin" if opts[:javabin]
+    $LOG.info "DRY RUN. Stopping now."
+  else
+    opts.suss.commit
+    $LOG.info "Commit done"
+  end
+  
+
+#####################################################  
+# delete -- delete IDs listed in the given file(s)
+#####################################################  
+
 when "delete"
   delfiles = opts.rest
+  unless delfiles.size > 0
+    $LOG.error "command 'delete' needs at least one filename"
+    puts "\n\nERROR: command 'delete' needs at least one filename"
+    opts.print_command_help('delete')
+  end
+  
+  # Get the suss
+  suss = opts.suss
+  
   # Make sure they can all be opened
-  # Get the suss (unless dryrun)
-  # Buzz through them in turn, keeping count
-  # log count
+  delfiles.each do |filename|
+    unless File.readable? filename
+      $LOG.error "Can't open configuration file `#{filename}`"
+      raise ArgumentError, "Can't open configuration file `#{filename}`" 
+    end
+  end
+  
+  # Now go ahead and process them
+  total = 0
+  
+  delfiles.each do |filename|
+    count = 0
+    f = File.open(filename)
+    $LOG.info "Deleting IDs listed in #{filename}"
+    $LOG.info "DRY RUN ONLY" if opts[:dryrun]
+    f.each_line do |id|
+      id.chomp!
+      suss.deleteById(id) unless opts[:dryrun]
+      $LOG.debug "Deleted id\t#{id}"
+      count += 1
+      total += 1
+    end
+    f.close
+    $LOG.info "Tried to delete #{count} ids from file '#{filename}'"
+  end
+  $LOG.info "Tried to delete #{total} ids from all #{delfiles.size} files" if delfiles.size > 1
+
+
+#####################################################  
+# index -- index the given marc files
+#####################################################  
+
 when "index"
   marcfiles = opts.rest
-  # make sure they all exist
-  # get suss unless dryrun
-  # get specset
   
-
-
-puts "Command is #{opts.command}"
-puts "Benchmark: #{opts[:benchmark]}"
-puts "Leftovers are #{opts.rest.join(' ')}"
-
-
-
-
-
-__END__
-
-
-##########################################################################
-# Get the MARC file from the last argument and make sure it can be opened
-##########################################################################
-
-marcfilename = ARGV.pop
-ARGV.push '--help' unless marcfilename 
-unless File.readable?(marcfilename)
-  STDERR.puts "File '#{marcfilename}' not readable"
-  ARGV.push '--help'
-end
-
-##########################################################################
-# Get the command-line args for log setup and later overriding of config
-# file settings
-#
-##########################################################################
-
-
-
-
-##########################################################################
-# Set up logging
-##########################################################################
-LOG = Logback::Simple::Logger.singleton
-Logback::Simple.loglevel = :debug
-Logback::Simple.startConsoleLogger
-
-
-# Suck in options from all the other arguments
-
-options = MARC2Solr::Configuration.new
-ARGV.each do |filename|
-  f = File.new(filename)
-  unless f
-    STDERR.puts "Cannot open '#{filename}'; aborting"
-    Process.exit
+  unless marcfiles.size > 0
+    $LOG.error "command 'delete' needs at least one marc file to index"
+    puts "\n\nERROR: command 'index' needs at least one filename"
+    opts.print_command_help('index')
   end
-  options.instance_eval(f.read)
-end
-
-
-
-# Make sure we've got what we need
-
   
-# 
+  
+  # Make sure everything can be opened
+  unless File.readable? opts[:indexfile]
+    $LOG.error "Index configuration file '#{opts[:indexfile]}' (set with --indexfile) cannot be found/read"
+    raise ArgumentError, "Index configuration file '#{opts[:indexfile]}' (set with --indexfile) cannot be found/read"
+  else
+    $LOG.debug "Found index file #{opts[:indexfile]}"
+  end
+  
+  unless File.readable? opts[:tmapdir]
+    $LOG.error "Translation Map directory '#{opts[:tmapdir]}' (set with --tmapdir) cannot be found/read"
+    raise ArgumentError, "Translation Map directory '#{opts[:tmapdir]}' (set with --tmapdir) cannot be found/read"
+  else
+    $LOG.debug "Found translation maps directory #{opts[:tmapdir]}"
+  end
+  
+  marcfiles.each do |filename|
+    if filename == "STDIN"
+      $LOG.info "Using standard input as a marc file"
+      next
+    end
+    unless File.readable? filename
+      $LOG.error "Can't open MARC file `#{filename}`"
+      raise ArgumentError, "Can't open MARC file `#{filename}`" 
+    else
+      $LOG.debug "Adding marc file #{filename} to queue"
+    end
+  end
+  
 
-pp options
+  # Load all the files in the customdir(s)
+  $LOG.debug "Loading custom routines"
+  if opts[:customdir].size > 0
+    opts[:customdir].each do |dir|
+      unless File.exist? dir
+        $LOG.warn "Skipping load directory '#{dir}': Not found"
+      end
+      $LOG.info "Loading files in #{dir}"
+      Dir.glob(["#{dir}/*.jar"]).each do |x|
+        $LOG.debug "Loading #{x}"
+        require x
+      end
+      Dir.glob(["#{dir}/*.rb"]).each do |x|
+        $LOG.debug "Loading #{x}"
+        require x
+      end
+    end
+  end
+
+  # Get the suss. Will throw an Argument error if there's not enough information
+  suss = opts.suss
+    
+  # Create a specset
+
+  ss = MARCSpec::SpecSet.new
+  ss.loadMapsFromDir opts[:tmapdir]
+  ss.buildSpecsFromDSLFile opts[:indexfile]
+  
+  # Set up if we're using threach or not
+  if opts[:threads] > 1
+    method = :threach
+    args = [opts[:threads], :each_with_index]
+  else
+    method = :each_with_index
+    args = []
+  end
+  
+  
+  if opts[:dryrun]
+    $LOG.info "Begin DRY RUN; nothing will be sent to Solr"
+  end
+  
+  # Read each filename in turn, indexing records in each 
+
+  i = 0 # Declare out here so we have a counter independent of the file being indexed
+  
+  start = Time.new.to_f
+  marcfiles.each do |filename|
+    $LOG.info "Indexing file #{filename}"
+    
+    reader = opts.reader(filename)
+    reader.send(method, *args) do |r, i|
+      Thread.current[:index] = i
+      
+      doc = ss.doc_from_marc(r, opts[:benchmark])
+      
+      # Send it to solr
+      unless opts[:dryrun]
+        suss << doc
+      end
+      
+      # Print out the record and/or the document
+      opts[:debugfile].puts r   if opts[:printmarc]
+      opts[:debugfile].puts doc if opts[:printdoc]
+      opts[:debugfile].puts "\n\n" if opts[:printdoc] or opts[:printmarc]
+      
+      if Thread.current[:index] % opts[:logbatchsize] == 0
+        pace  = Thread.current[:index] / (Time.new.to_f - start) 
+        $LOG.info "%d indexed (overall pace: %.0f rec/sec)" % [Thread.current[:index], pace]
+      end
+    end # reader
+  end # marcfiles
+  
+  # Commit
+  
+  unless opts[:dryrun] or opts[:skipcommit]
+    $LOG.info "Sending final commit"
+    suss.commit
+    $LOG.info "Final commit finished"
+  end
+  
+  # Be done
+  $LOG.info "Done indexing"
+  pace  = i / (Time.new.to_f - start) 
+  $LOG.info "%d indexed (overall pace: %.0f rec/sec)" % [i, pace]
+  
+  
+  # Log the benchmarking information if requested
+  if opts[:benchmark]
+    ss.benchmarks.keys.sort{|a,b| ss.benchmarks[b].real <=> ss.benchmarks[a].real}.each do |k|
+      $LOG.info("%-20s %s" % [k + ':', ss.benchmarks[k].real.to_s])
+    end
+  end
+  
+end # end of the case statement
+

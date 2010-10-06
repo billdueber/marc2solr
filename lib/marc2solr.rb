@@ -3,6 +3,7 @@ require 'logback-simple'
 require 'trollop'
 require 'ftools'
 require 'jruby_streaming_update_solr_server'
+require 'marc4j4r'
 
 module MARC2Solr
   
@@ -24,10 +25,8 @@ module MARC2Solr
                    :only=> [:index],
                   }],
      [:dryrun,   {:desc => "Don't send anything to solr",
-                    :only => [:index]
                     }],
       [:NOdryrun,   {:desc => "Disable a previous 'dryrun' directive",
-                    :only => [:index]
                     }],
                     
       [:printmarc, {:desc =>"Print MARC Record (as text) to --debugfile",
@@ -43,9 +42,7 @@ module MARC2Solr
       ],
       [:NOprintdoc,  {:desc => "Turn off printing each completed document to --debugfile", 
                     :only => [:index],
-                    }
-      ],
-      
+                    }],      
       [:debugfile, {:desc => "Where to send output from --printmarc and --printdoc (takes filename, 'STDERR', 'STDOUT', or 'NONE') (repeatable)", \
                     :default => "STDOUT",
                     :isOutfile => true,
@@ -60,18 +57,16 @@ module MARC2Solr
                     :short => '-C',
                     :only => [:delete, :index],
                     }],
-      [:threads,   {:desc => "Number of threads to use to process MARC records", 
+      [:threads,   {:desc => "Number of threads to use to process MARC records (>1 => use 'threach')", 
                     :type => :int,
                     :default => 1,
                     :only => [:index]
                     }],                    
       [:sussthreads, {:desc => "Number of threads to send completed docs to Solr", 
                       :type => :int,
-                      :only => [:delete, :index],
                       :default => 1}],
       [:susssize,    {:desc => "Size of the documente queue for sending to Solr", 
                       :short => '-S',
-                      :only => [:delete, :index],                      
                       :default => 128}],
       [:machine, {:desc => "Name of solr machine (e.g., solr.myplace.org)",
                       :short => '-m',
@@ -79,46 +74,54 @@ module MARC2Solr
                       :type => String}],
       [:port,        {:desc => "Port of solr machine (e.g., '8088')", 
                     :short => '-p',
-                    # :required => [:index, :commit, :delete],
-                    :default => 8088,
                     :type => :int}],
       [:solrpath,  {:desc => "URL path to solr",
                     :short => '-P',
-                    # :required => [:index, :commit, :delete],
-                    :default => "solr/biblio"}],
+                   }],
       [:javabin, {:desc => "Use javabin (presumes /update/bin is configured in schema.xml)", 
                       }],                      
       [:NOjavabin, {:desc => "Don't use javabin", 
                       }],                      
-      [:logfile,   {:desc => "Name of the logfile (filename, 'STDOUT', 'STDERR', or 'NONE')", 
-                    :default => "NONE",
-                    :isOutfile => true,
+      [:logfile,   {:desc => "Name of the logfile (filename, 'STDERR', 'DEFAULT', or 'NONE'). 'DEFAULT' is a file based on input file name", 
+                    :default => "DEFAULT",
                     :takesNone => true,                    
                     :type => String}],
-      [:loglevel, {:desc=>"Level at which to log (DEBUG, INFO, WARN, ERROR, NONE)",
+      [:loglevel, {:desc=>"Level at which to log (DEBUG, INFO, WARN, ERROR, OFF)",
                    :short => '-L',
                    :takesNone => true,
+                   :valid => %w{OFF DEBUG INFO WARN ERROR },
                    :default => 'INFO'}],
       [:logbatchsize, {:desc => "Write progress information to logfile after every N records",
                        :default => 25000,
                        :only => [:delete, :index],
                        :short => '-b'}],
       [:indexfile, {:desc => "The index file describing your specset (usually index.rb)",
-                    :type => :io,
+                    :type => String,
                     :only => [:index],
                     }],
       [:tmapdir,   {:desc => "Directory that contains any translation maps",
                     :type => String,
                     :only => [:index]
                     }],
-      [:marctype, {:desc => "Type of marc file ('bestguess', 'marcbinary'. 'marcxml', 'alephsequential', 'permissivemarc')",
+      [:customdir, {:desc=>"The directory containging custom routine libraries (usually the 'lib' next to index.rb). Repeatable",
+                    :only => [:index],
+                    :multi => true,
+                    :type => String
+                    }],
+      [:marctype, {:desc => "Type of marc file ('bestguess', 'strictmarc'. 'marcxml', 'alephsequential', 'permissivemarc')",
                    :only => [:index],
                    :short => '-t',
+                   :valid => %w{bestguess strictmarc permissivemarc marcxml alephsequential },
                    :default => 'bestguess'
                    }],      
       [:encoding, {:desc => "Encoding of the MARC file ('bestguess', 'utf8', 'marc8', 'iso')",
+                   :valid => %w{bestguess utf8 marc8 iso},
                    :only => [:index],
-                   :default => 'bestguess'}]
+                   :default => 'bestguess'}],
+      [:gzipped, {:desc=>"Is the input gzipped? An extenstion of .gz will always force this to true",
+                  :default => false,
+                  :only => [:index, :delete],
+                  }]
 
     ]
     
@@ -128,8 +131,8 @@ module MARC2Solr
     
     HELPTEXT = {
       'help'  => "Get help on a command\nmarc2solr help <cmd> where <cmd> is index, delete, or commit",
-      'index' => "Index the given MARC file\nmarc2solr index --config <file> --override <marcfile>",
-      'delete' => "Delete based on ID\nmarc2solr delete --config <file> --override <file_of_ids_to_delete>",
+      'index' => "Index the given MARC file\nmarc2solr index --config <file> --override <marcfile> <marcfile2...>",
+      'delete' => "Delete based on ID\nmarc2solr delete --config <file> --override <file_of_ids_to_delete> <another_file...>",
       'commit' => "Send a commit to the specified Solr\nmarc2solr commit --config <file> --override",
     }
     
@@ -141,7 +144,7 @@ module MARC2Solr
       # Load the config files
       if @cmdline[:config]
         @cmdline[:config].each do |f|
-          puts"Reading config-file ''#{f.path}'"
+          log.info "Reading config-file '#{f.path}'"
           self.instance_eval(f.read)
         end
       end
@@ -166,11 +169,11 @@ module MARC2Solr
       
       @cmdline.each_pair do |k,v|
         if @cmdline_given[k]
-          puts "Send override #{k} = #{v}"
+          # puts "Send override #{k} = #{v}"
           self.send(k,v) 
         else
           unless @config.has_key? k
-            puts "Send default #{k} = #{v}"
+            # puts "Send default #{k} = #{v}"
             self.send(k,v) 
           end
         end
@@ -232,7 +235,7 @@ module MARC2Solr
     marc2solr delete (delete by ID from Solr)
     marc2solr commit (send a 'commit' to a solr install)
     
-  Use "marc2solr help <cmd>" for more help
+  Use "marc2solr <cmd> --help" for more help
 
 }
       Process.exit
@@ -259,16 +262,7 @@ module MARC2Solr
       Process.exit
       
     end
-    
-    
-    
-    def loadConfig filename
-      f = File.open(filename)
-      raise ArgumentError, "Can't open configuration file `#{filename}`" unless f
-      log.debug "Reading config-file ''#{filename}'"
-      self.instance_eval(f.read)
-    end
-    
+        
     
     def pretty_print(pp)
       pp.pp @config
@@ -284,7 +278,7 @@ module MARC2Solr
           methodSymbol = $1.to_sym
           arg = false
         else
-          puts "Ignoring false-valued #{methodSymbol}"
+          # puts "Ignoring false-valued #{methodSymbol}"
           return # do nothing
         end
       end
@@ -296,6 +290,14 @@ module MARC2Solr
         if conf[:takesNone] and arg.to_a.map{|a| a.downcase}.include? 'none'
           @config[methodSymbol] = nil 
           return nil
+        end
+        
+        
+        # Check for a valid value
+        if conf[:valid]
+          unless conf[:valid].include? arg
+            raise ArgumentError "'#{arg}' is not a valid value for #{methodSymbol}"
+          end
         end
         
         # Make it a file?
@@ -313,12 +315,8 @@ module MARC2Solr
           when "stderr"
             arg = STDERR
           else
-            if File.writable? arg
-              arg = File.new(arg, 'w')
-            else
-              # raise ArgumentError, "Can't open file '#{arg}"
-              Trollop.die "Can't open '#{arg}' for writing in argument #{methodSymbol}"
-            end
+            arg = File.new(arg, 'w')
+            Trollop.die "Can't open '#{arg}' for writing in argument #{methodSymbol}" unless arg
           end
         end
             
@@ -330,7 +328,7 @@ module MARC2Solr
         else
           @config[methodSymbol] = arg 
         end
-        puts "Set #{methodSymbol} to #{arg}"
+        # puts "Set #{methodSymbol} to #{arg}"
         return @config[methodSymbol]
       else
         raise NoMethodError, "'#{methodSymbol} is not a valid MARC2Solr configuration option for #{@cmd}"
@@ -339,23 +337,109 @@ module MARC2Solr
     
     
     # Create a SUSS from the given arguments
-    def suss
-      machine = self[:machine] or raise ArgumentError, "Need solr machine name (--machine)"
-      port = self[:port] or raise ArgumentError, "Need solr port (--port)"
-      path = self[:solrpath] or raise ArgumentError, "Need solr path (--solrpath)"
+    
+    def sussURL
+      machine = self[:machine] 
+      unless machine 
+        log.error  "Need solr machine name (--machine)"
+        raise ArgumentError, "Need solr machine name (--machine)"
+      end
+      
+      port = self[:port] 
+      unless port
+        log.error "Need solr port (--port)"
+        raise ArgumentError, "Need solr port (--port)"
+      end
+      
+      path = self[:solrpath]
+      unless path
+        log.error "Need solr path (--solrpath)"
+        raise ArgumentError, "Need solr path (--solrpath)"
+      end
       
       url = 'http://' + machine + ':' + port + '/' + path.gsub(/^\//, '')
-
+    end
+    
+    def suss
+      url = self.sussURL
       log.debug "Set suss url to #{url}"
 
-      suss = StreamingUpdateSolrServer.new(url,self[:susssize],self[:sussthreads])
+      suss = StreamingUpdateSolrServer.new(url,@config[:susssize],@config[:sussthreads])
       if self[:javabin]
         suss.setRequestWriter Java::org.apache.solr.client.solrj.impl.BinaryRequestWriter.new
+        log.debug "Using javabin"
       end
       return suss
     end
       
+    def masterLogger
+      mlog = Logback::Simple::Logger.singleton(self.command)
+      mlog.loglevel = @config[:loglevel].downcase.to_sym
+
+      firstfile = self.rest[0] || self.command
+      logfilename = File.basename(firstfile).gsub(/\..*$/, '') # remove the last extension
+      logfilename += '-' +  Time.new.strftime('%Y%m%d-%H%M%S') + '.log'
+
+      Logback::Simple.loglevel = @config[:loglevel].downcase.to_sym
+      case @config[:logfile]
+      when "STDERR"
+        Logback::Simple.startConsoleLogger
+      when "DEFAULT"
+        Logback::Simple.startFileLogger(logfilename)
+      when 'NONE', nil
+        # do nothing
+      else
+        Logback::Simple.startFileLogger(@config[:logfile])
+      end
+      return mlog
+    end
+    
+    
+    def reader filename
+      configuredType = @config[:marctype].downcase.to_sym
+      encoding = @config[:encoding].downcase.to_sym
       
+      if encoding == :bestguess
+        encoding = nil
+      end
+      
+      gzipped = false
+      if configuredType == :bestguess
+        if filename =~ /\.(.+)$/ # if there's an extension
+          ext = File.basename(filename).split(/\./)[-1].downcase
+          if ext == 'gz'
+            ext  = File.basename(filename).split(/\./)[-2].downcase
+            puts "New ext is #{ext}"
+            gzipped = true
+          end          
+          
+          log.info "Sniffed marc file type as #{ext}"
+          case ext
+          when /xml/, /marcxml/
+            type = :marcxml
+          when /seq/, /aleph/
+            type = :alephsequential
+          else
+            type = :permissivemarc
+          end
+        else
+          type = :permissivemarc
+        end
+      else
+        type = configuredType
+      end
+
+      source = filename
+      if source == "STDIN"
+        source = STDIN
+      end
+
+      if gzipped or @config[:gzipped]
+        source = Java::java.util.zip.GZIPInputStream.new(IOConvert.byteinstream(source))
+      end
+      
+      return MARC4J4R::Reader.new(source, type, encoding)
+    end
     
     
   end
