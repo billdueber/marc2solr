@@ -1,15 +1,14 @@
-#!/usr/bin/env jruby
-
+#!/usr/bin/env jruby --server -J-Djruby.compile.frameless=true -J-Djruby.compile.positionless=true -J-Djruby.compile.peephole=true
 $:.unshift 'lib'
 require 'marc2solr'
 require 'marc2solr/marc2solr_custom'
-
 
 require 'rubygems'
 require 'pp'
 require 'logback-simple'
 require 'marcspec'
 require 'threach'
+
 
 
 
@@ -137,6 +136,7 @@ when "index"
     opts[:customdir].each do |dir|
       unless File.exist? dir
         $LOG.warn "Skipping load directory '#{dir}': Not found"
+        opts[:customdir].delete dir
       end
       $LOG.info "Loading files in #{dir}"
       Dir.glob(["#{dir}/*.jar"]).each do |x|
