@@ -8,7 +8,7 @@ require 'marc4j4r'
 
 module MARC2Solr
   
-  class Configuration
+  class Conf
     include Logback::Simple
     
     SUB_COMMANDS = %w(index delete commit help)
