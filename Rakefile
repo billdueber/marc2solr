@@ -12,8 +12,8 @@ begin
     gem.authors = ["BillDueber"]
     
     gem.add_dependency 'marc4j4r', '>= 1.2.0'
-    gem.add_dependency 'jruby_streaming_update_solr_server', '>=0.5.1'
-    gem.add_dependency 'marcspec', '>= 1.6.2'
+    gem.add_dependency 'jruby_streaming_update_solr_server', '>=0.5.2'
+    gem.add_dependency 'marcspec', '>= 1.6.3'
     gem.add_dependency 'threach', '>= 0.2.0'
     gem.add_dependency 'logback-simple'
 
