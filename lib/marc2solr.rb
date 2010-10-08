@@ -1,4 +1,5 @@
 require 'rubygems'
+
 require 'logback-simple'
 require 'trollop'
 require 'ftools'
@@ -409,7 +410,6 @@ module MARC2Solr
           ext = File.basename(filename).split(/\./)[-1].downcase
           if ext == 'gz'
             ext  = File.basename(filename).split(/\./)[-2].downcase
-            puts "New ext is #{ext}"
             gzipped = true
           end          
           
