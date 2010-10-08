@@ -14,14 +14,57 @@ require 'fileutils'
 propfile = ARGV[0]
 newdir = ARGV[1]
 
+def usage
+  puts %q{
+  solrmarc_to_marc2solr -- attempt to convert a solrmarc index file and
+  translation maps to marc2solr format
+  
+  Usage:
+  
+    solrmarc_to_marc2solr /path/to/blah_index.properties /path/to/newdir
+    
+  This will:
+   1. Tranlaste all the translation maps found in the directory "translation_maps"
+      located in the same direcotry as blah_index.properites and put them in
+      /path/to/newdir/translation_maps
+   2. Translate blah_index.properties and put the resultling index.dsl file in
+      /path/to/newdir/index.dsl
+   3. Create a logfile, solrmarc_to_marc2solr.log in /path/to/newdir/ that
+      lists the lines it couldn't read and didn't attempt to translate (e.g., most
+      custom functions)
+  }
+  Process.exit
+  
+end
+
+# Need help?
+
+if ARGV.size != 2
+  usage
+end
+
 
 $LOG = Logback::Simple::Logger.singleton('fromsolrmarc')
 Logback::Simple.loglevel = :debug
 Logback::Simple.startFileLogger("#{newdir}/fromsolrmarc.log")
 
 
-
 # First, try to create the new directory structure
+
+
+
+unless File.exist? propfile
+  STDERR.puts  "Can't find index file '#{propfile}\nUse 'solrmarc_to_marc2solr' by itself for usage"
+  $LOG.error "Can't find file '#{propfile}"
+  Process.exit
+end
+
+unless File.readable? propfile
+  STDERR.puts "Index file '#{propfile}' exists but cannot be read\nUse 'solrmarc_to_marc2solr' by itself for usage"
+  $LOG.error "File '#{propfile}' exists but cannot be read"
+  Process.exit
+end
+
 
 begin
   FileUtils.mkdir_p "#{newdir}/translation_maps"
@@ -31,14 +74,6 @@ rescue Exception => e
 end
 
 
-unless File.exist? propfile
-  $LOG.error "Can't find file '#{propfile}"
-  exit
-end
-unless File.readable? propfile
-  $LOG.error "File '#{propfile}' exists but cannot be read"
-  exit
-end
 
 
 propfiledir = File.dirname(propfile)
