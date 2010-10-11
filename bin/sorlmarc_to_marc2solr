@@ -1,7 +1,5 @@
 #!/usr/bin/env jruby
-$:.unshift 'lib'
 require 'marc2solr/marc2solr_custom'
-
 require 'rubygems'
 require 'marc4j4r'
 require 'logback-simple'

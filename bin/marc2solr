@@ -1,5 +1,4 @@
 #!/usr/bin/env jruby --server -J-Djruby.compile.frameless=true -J-Djruby.compile.positionless=true -J-Djruby.compile.peephole=true
-$:.unshift 'lib'
 require 'marc2solr'
 require 'marc2solr/marc2solr_custom'
 
