@@ -21,7 +21,7 @@ begin
     gem.add_development_dependency "yard", ">= 0"
 
     gem.bindir = 'bin'
-    gem.executables << 'fromsolrmarc'
+    gem.executables << 'solrmarc_to_marc2solr'
     gem.executables << 'marc2solr'
     
   end
