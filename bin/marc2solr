@@ -85,6 +85,12 @@ when "delete"
   end
   $LOG.info "Tried to delete #{total} ids from all #{delfiles.size} files" if delfiles.size > 1
 
+  unless opts[:dryrun] or opts[:skipcommit]
+    $LOG.info "Sending final commit"
+    suss.commit
+    $LOG.info "Final commit finished"
+  end
+
 
 #####################################################  
 # index -- index the given marc files
@@ -172,6 +178,17 @@ when "index"
     $LOG.info "Begin DRY RUN; nothing will be sent to Solr"
   end
   
+  # Clear solr if so declared
+  if opts[:clearsolr] 
+    if opts[:dryrun]
+      $LOG.info "Would have cleared out solr (but for dryrun)"
+    else
+      suss.deleteByQuery('*:*')
+      suss.commit
+      $LOG.info "Cleared out solr"
+    end
+  end
+  
   # Read each filename in turn, indexing records in each 
 
   i = 0 # Declare out here so we have a counter independent of the file being indexed
@@ -183,6 +200,8 @@ when "index"
     reader = opts.reader(filename)
     reader.send(method, *args) do |r, i|
       Thread.current[:index] = i
+      
+      $LOG.debug("Indexing record with 001 {}", r['001'])
       
       doc = ss.doc_from_marc(r, opts[:benchmark])
       
