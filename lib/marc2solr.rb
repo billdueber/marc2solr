@@ -54,6 +54,9 @@ module MARC2Solr
       [:clearsolr, {:desc => "Clean out Solr by deleting everything in it (DANGEROUS)",
                     :only => [:index]
                     }],
+      [:NOclearsolr, {:desc => "Disable a previous --clearsolr command",
+                  :only => [:index]
+                  }],
       [:skipcommit,    {:desc => "DON'T send solr a 'commit' afterwards", 
                     :short => '-C',
                     :only => [:delete, :index],
@@ -96,7 +99,7 @@ module MARC2Solr
                        :default => 25000,
                        :only => [:delete, :index],
                        :short => '-b'}],
-      [:indexfile, {:desc => "The index file describing your specset (usually index.rb)",
+      [:indexfile, {:desc => "The index file describing your specset (usually index.dsl)",
                     :type => String,
                     :only => [:index],
                     }],
@@ -107,6 +110,7 @@ module MARC2Solr
       [:customdir, {:desc=>"The directory containging custom routine libraries (usually the 'lib' next to index.rb). Repeatable",
                     :only => [:index],
                     :multi => true,
+                    :takesNone => true,
                     :type => String
                     }],
       [:marctype, {:desc => "Type of marc file ('bestguess', 'strictmarc'. 'marcxml', 'alephsequential', 'permissivemarc')",
