@@ -85,7 +85,7 @@ module MARC2Solr
     # Extract an ISBN from the given subfields of the 020 and provide
     # both 10-character and 13-digit versions for each
     
-    def self.getISBNS codes=['a', 'z']
+    def self.getISBNS doc, r, codes=['a', 'z']
       rv = []
       r.find_by_tag('020').each do |f|
         f.sub_values(codes).each do |v|
