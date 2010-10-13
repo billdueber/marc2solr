@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'logback-simple'
+require 'library_stdnums'
 
 module MARC2Solr
   module Custom
@@ -81,6 +82,18 @@ module MARC2Solr
       return data
     end
     
+    # Extract an ISBN from the given subfields of the 020 and provide
+    # both 10-character and 13-digit versions for each
+    
+    def self.getISBNS codes=['a', 'z']
+      rv = []
+      r.find_by_tag('020').each do |f|
+        f.sub_values(codes).each do |v|
+          rv.concat StdNum::ISBN.allNormalizedValues(v)
+        end
+      end
+      return rv
+    end
     
     # An example of a DateOfPublication implementation
     # @param [hashlike] doc The document object being added to; allows you to leverage already-done work

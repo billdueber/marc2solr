@@ -16,6 +16,7 @@ begin
     gem.add_dependency 'marcspec', '>= 1.6.3'
     gem.add_dependency 'threach', '>= 0.2.0'
     gem.add_dependency 'logback-simple'
+    gem.add_dependency 'library_stdnums', '>=0.2.0'
 
     gem.add_development_dependency "rspec", ">= 1.2.9"
     gem.add_development_dependency "yard", ">= 0"
