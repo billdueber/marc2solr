@@ -200,9 +200,7 @@ when "index"
     reader = opts.reader(filename)
     reader.send(method, *args) do |r, i|
       Thread.current[:index] = i
-      
-      $LOG.debug("Indexing record with 001 #{r['001']}")
-      
+            
       doc = ss.doc_from_marc(r, opts[:benchmark])
       
       # Send it to solr
