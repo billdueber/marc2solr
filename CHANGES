@@ -1,0 +1,14 @@
+0.1.4
+  Add dependency on Trollop to Rakefile
+  
+0.1.3
+  ...and fixed signature for getISBNs
+  
+0.1.2
+  Added custom function getISBNS
+  
+0.1.1
+  Minor fixes to documentation of options
+  
+0.1.0 
+  Initial public release
