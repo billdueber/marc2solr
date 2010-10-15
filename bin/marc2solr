@@ -166,9 +166,11 @@ when "index"
   
   # Set up if we're using threach or not
   if opts[:threads] > 1
+    $LOG.info "Using #{opts[:threads]} threads; activiating threach"
     method = :threach
     args = [opts[:threads], :each_with_index]
   else
+    $LOG.info "Using 1 thread"
     method = :each_with_index
     args = []
   end

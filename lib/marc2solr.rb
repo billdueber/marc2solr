@@ -367,7 +367,12 @@ module MARC2Solr
     
     def suss
       url = self.sussURL
-      log.debug "Set suss url to #{url}"
+      log.info "Set suss url to #{url}"
+      if @config[:sussthreads] > 1
+        log.info "Using #{@config[:sussthreads]} threads for the suss"
+      else
+        log.info "Using a single thread for the suss"
+      end
 
       suss = StreamingUpdateSolrServer.new(url,@config[:susssize],@config[:sussthreads])
       if self[:javabin]
