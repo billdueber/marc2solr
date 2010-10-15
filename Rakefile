@@ -11,19 +11,18 @@ begin
     gem.homepage = "http://github.com/billdueber/marc2solr"
     gem.authors = ["BillDueber"]
     
-    gem.add_dependency 'marc4j4r', '>= 1.2.0'
+    gem.add_dependency 'marc4j4r', '>= 1.3.0'
     gem.add_dependency 'jruby_streaming_update_solr_server', '>=0.5.2'
-    gem.add_dependency 'marcspec', '>= 1.6.3'
+    gem.add_dependency 'marcspec', '>= 1.6.5'
     gem.add_dependency 'threach', '>= 0.2.0'
-    gem.add_dependency 'logback-simple'
+    gem.add_dependency 'jlogger', '>=0.0.4'
     gem.add_dependency 'library_stdnums', '>=0.2.0'
     gem.add_dependency 'trollop'
+    
     gem.add_development_dependency "rspec", ">= 1.2.9"
     gem.add_development_dependency "yard", ">= 0"
 
     gem.bindir = 'bin'
-    gem.executables << 'solrmarc_to_marc2solr'
-    gem.executables << 'marc2solr'
     
   end
   Jeweler::GemcutterTasks.new

@@ -1,10 +1,10 @@
 require 'rubygems'
-require 'logback-simple'
+require 'jlogger'
 require 'library_stdnums'
 
 module MARC2Solr
   module Custom
-    LOG = Logback::Simple::Logger.singleton
+    LOG = JLogger::RootLogger.new
     
     # Custom routines are defined as module methods that take two arguments: a MARC4J4R record,
     # and an (optional) array of other arguments passed in. 

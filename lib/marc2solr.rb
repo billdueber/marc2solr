@@ -1,6 +1,6 @@
 require 'rubygems'
 
-require 'logback-simple'
+require 'jlogger'
 require 'trollop'
 require 'ftools'
 require 'jruby_streaming_update_solr_server'
@@ -9,7 +9,7 @@ require 'marc4j4r'
 module MARC2Solr
   
   class Conf
-    include Logback::Simple
+    include JLogger::Simple
     
     SUB_COMMANDS = %w(index delete commit help)
     
@@ -149,7 +149,7 @@ module MARC2Solr
       # Load the config files
       if @cmdline[:config]
         @cmdline[:config].each do |f|
-          log.info "Reading config-file '#{f.path}'"
+          log.info "Reading config-file '{}'", f.path
           self.instance_eval(f.read)
         end
       end
@@ -367,9 +367,9 @@ module MARC2Solr
     
     def suss
       url = self.sussURL
-      log.info "Set suss url to #{url}"
+      log.info "Set suss url to {}", url
       if @config[:sussthreads] > 1
-        log.info "Using #{@config[:sussthreads]} threads for the suss"
+        log.info "Using {} threads for the suss", @config[:sussthreads]
       else
         log.info "Using a single thread for the suss"
       end
@@ -383,23 +383,24 @@ module MARC2Solr
     end
       
     def masterLogger
-      mlog = Logback::Simple::Logger.singleton(self.command)
+      mlog = JLogger::RootLogger.new
       mlog.loglevel = @config[:loglevel].downcase.to_sym
 
       firstfile = self.rest[0] || self.command
       logfilename = File.basename(firstfile).gsub(/\..*$/, '') # remove the last extension
       logfilename += '-' +  Time.new.strftime('%Y%m%d-%H%M%S') + '.log'
 
-      Logback::Simple.loglevel = @config[:loglevel].downcase.to_sym
       case @config[:logfile]
       when "STDERR"
-        Logback::Simple.startConsoleLogger
+        mlog.startConsole
       when "DEFAULT"
-        Logback::Simple.startFileLogger(logfilename)
+        mlog.startFile(logfilename)
       when 'NONE', nil
+        mlog.stopConsole
+        mlog.loglevel = :off
         # do nothing
       else
-        Logback::Simple.startFileLogger(@config[:logfile])
+        mlog.startFile(@config[:logfile])
       end
       return mlog
     end
@@ -422,7 +423,7 @@ module MARC2Solr
             gzipped = true
           end          
           
-          log.info "Sniffed marc file type as #{ext}"
+          log.info "Sniffed marc file type as {}", ext
           case ext
           when /xml/, /marcxml/
             type = :marcxml
