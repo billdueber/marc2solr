@@ -105,20 +105,29 @@ when "index"
     opts.print_command_help('index')
   end
   
-  
-  # Make sure everything can be opened
-  unless File.readable? opts[:indexfile]
-    LOG.error "Index configuration file '#{opts[:indexfile]}' (set with --indexfile) cannot be found/read"
-    raise ArgumentError, "Index configuration file '#{opts[:indexfile]}' (set with --indexfile) cannot be found/read"
-  else
-    LOG.debug "Found index file #{opts[:indexfile]}"
+  # Make sure we've got an indexfile
+  unless opts[:indexfile]
+    LOG.error "Index configuration file (index.rb) is rquired."
+    raise ArgumentError, "Index configuraiton file (index.rb) is required"
   end
   
-  unless File.readable? opts[:tmapdir]
-    LOG.error "Translation Map directory '#{opts[:tmapdir]}' (set with --tmapdir) cannot be found/read"
-    raise ArgumentError, "Translation Map directory '#{opts[:tmapdir]}' (set with --tmapdir) cannot be found/read"
+  # Make sure everything can be opened
+  if File.readable? opts[:indexfile]
+    LOG.debug "Found index file #{opts[:indexfile]}"
   else
-    LOG.debug "Found translation maps directory #{opts[:tmapdir]}"
+    LOG.error "Index configuration file '#{opts[:indexfile]}' (set with --indexfile) cannot be found/read"
+    raise ArgumentError, "Index configuration file '#{opts[:indexfile]}' (set with --indexfile) cannot be found/read"
+  end
+  
+  if opts[:tmapdir]
+    if File.readable? opts[:tmapdir]
+      LOG.debug "Found translation maps directory #{opts[:tmapdir]}"
+    else
+      LOG.error "Translation Map directory '#{opts[:tmapdir]}' (set with --tmapdir) cannot be found/read"
+      raise ArgumentError, "Translation Map directory '#{opts[:tmapdir]}' (set with --tmapdir) cannot be found/read"
+    end
+  else
+    LOG.warn "No translation maps defined; hope that's what you intended"
   end
   
   marcfiles.each do |filename|
@@ -161,7 +170,7 @@ when "index"
   # Create a specset
 
   ss = MARCSpec::SpecSet.new
-  ss.loadMapsFromDir opts[:tmapdir]
+  ss.loadMapsFromDir opts[:tmapdir] if opts[:tmapdir]
   ss.buildSpecsFromDSLFile opts[:indexfile]
   
   # Set up if we're using threach or not

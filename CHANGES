@@ -1,5 +1,7 @@
 0.1.7
   Fixed use of --solrpath and --port on the command line
+  Check for configured index.rb (required) and tmapdir (optional; warning if 
+  not present) for indexing
   
 0.1.6
   Changed to parameterized logging with jlogger 0.0.4 for faster non-logging
