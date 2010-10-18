@@ -81,6 +81,7 @@ module MARC2Solr
                     :type => :int}],
       [:solrpath,  {:desc => "URL path to solr",
                     :short => '-P',
+                    :type => String,
                    }],
       [:javabin, {:desc => "Use javabin (presumes /update/bin is configured in schema.xml)", 
                       }],                      
@@ -362,7 +363,7 @@ module MARC2Solr
         raise ArgumentError, "Need solr path (--solrpath)"
       end
       
-      url = 'http://' + machine + ':' + port + '/' + path.gsub(/^\//, '')
+      url = 'http://' + machine + ':' + port.to_s + '/' + path.gsub(/^\//, '')
     end
     
     def suss
