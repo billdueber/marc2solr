@@ -23,6 +23,11 @@ opts = MARC2Solr::Conf.new
 
 LOG = opts.masterLogger
 
+# Crank down the SUSS logging
+
+susslog = RJack::Logback['org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer']
+susslog.level = RJack::Logback::WARN
+
 # Perform the command
 
 case opts.command
