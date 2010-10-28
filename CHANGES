@@ -1,3 +1,6 @@
+0.1.8
+  Missed a ref to 'logback-simple'; removed.
+  
 0.1.7
   Fixed use of --solrpath and --port on the command line
   Check for configured index.rb (required) and tmapdir (optional; warning if 

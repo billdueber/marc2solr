@@ -4,7 +4,6 @@ require 'marc2solr/marc2solr_custom'
 
 require 'rubygems'
 require 'pp'
-require 'logback-simple'
 require 'marcspec'
 require 'threach'
 
