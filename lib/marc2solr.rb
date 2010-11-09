@@ -11,10 +11,16 @@ module MARC2Solr
   class Conf
     include JLogger::Simple
     
-    SUB_COMMANDS = %w(index delete commit help)
+    SUB_COMMANDS = %w(index delete commit help ping)
     
     
     OPTIONSCONFIG = [
+      [:custom,    {:desc => "Any custom value you want. In a config file, use two String arguments (custom key value); on the command line use (--custom key=value) or (--custom key=\"three word value\")",
+                    :type=>String,
+                    :multi => true,
+                    :only => [:index],
+                    :short => '-C'
+      }],
       [:config,    {:desc => "Configuation file specifying options. Repeatable. Command-line arguments always override the config file(s)",
                     :type => :io,
                     :multi => true}],
@@ -58,7 +64,7 @@ module MARC2Solr
                   :only => [:index]
                   }],
       [:skipcommit,    {:desc => "DON'T send solr a 'commit' afterwards", 
-                    :short => '-C',
+                    :short => '-S',
                     :only => [:delete, :index],
                     }],
       [:threads,   {:desc => "Number of threads to use to process MARC records (>1 => use 'threach')", 
@@ -70,7 +76,6 @@ module MARC2Solr
                       :type => :int,
                       :default => 1}],
       [:susssize,    {:desc => "Size of the documente queue for sending to Solr", 
-                      :short => '-S',
                       :default => 128}],
       [:machine, {:desc => "Name of solr machine (e.g., solr.myplace.org)",
                       :short => '-m',
@@ -175,7 +180,7 @@ module MARC2Solr
       
       @cmdline.each_pair do |k,v|
         if @cmdline_given[k]
-          # puts "Send override #{k} = #{v}"
+          puts "Send override #{k} = #{v}"
           self.send(k,v) 
         else
           unless @config.has_key? k
@@ -274,6 +279,20 @@ module MARC2Solr
       pp.pp @config
     end
     
+    # Handle custom events specially
+    def custom (*args)
+      if args.size == 2 # called in a config file
+        @config[args[0]] = args[1]
+      else # parse it out
+        args[0].each do |str|
+          key,val = str.split(/\s*=\s*/)
+          val.gsub!(/^["']*(.*?)['"]$/, '\1')
+          @config[key] = val
+        end
+      end
+    end
+    
+    
     def method_missing(methodSymbol, arg=:notgiven, fromCmdline = false)
       return @config[methodSymbol] if arg == :notgiven
       methodSymbol = methodSymbol.to_s.gsub(/=$/, '').to_sym
@@ -362,8 +381,10 @@ module MARC2Solr
         log.error "Need solr path (--solrpath)"
         raise ArgumentError, "Need solr path (--solrpath)"
       end
+      path.gsub! /^\/*(.*?)\/*$/, '\1' # remove any leading/trailing slashes
+      path.squeeze! '/'     # make sure there are no double-slashses
       
-      url = 'http://' + machine + ':' + port.to_s + '/' + path.gsub(/^\//, '')
+      url = 'http://' + machine + ':' + port.to_s + '/' + path
     end
     
     def suss

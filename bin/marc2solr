@@ -9,33 +9,65 @@ require 'threach'
 
 
 
-
 opts = MARC2Solr::Conf.new
 
-# pp opts
 
 
-###########################
-# Get a master logger
-###########################
-
-
-LOG = opts.masterLogger
-
-# Crank down the SUSS logging
-
-susslog = RJack::Logback['org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer']
-susslog.level = RJack::Logback::WARN
 
 # Perform the command
 
+# If we're going to be talking to Solr, make sure it's there!
+HC = Java::org.apache.commons.httpclient
+
+def pingSolr(opts)
+  if opts[:dryrun]
+    LOG.info "Dry run: not bothing to check and see if solr is alive"
+  else
+    url = opts.sussURL + '/admin/ping'
+    client = HC.HttpClient.new 
+    method = HC.methods.GetMethod.new(url)
+    begin
+      code = client.executeMethod(method)
+    rescue 
+      LOG.error "Can't ping solr URL '#{url}'" if defined? LOG
+      raise ArgumentError, "(Not up?) Can't ping solr server at #{opts.sussURL}"
+    end
+    unless code == 200
+      LOG.error "Can't ping solr URL '#{url}'" if defined? LOG
+      raise ArgumentError, "Got response code #{code} from #{opts.sussURL}"
+    end
+  end
+end  
+
+
+
 case opts.command
+
+###################
+# Ping -- see if your solr is alive
+###################
+
+when "ping"
+  begin
+    pingSolr(opts)
+    puts "\n#{opts.sussURL} is alive\n"
+  rescue ArgumentError => e
+    puts e.message
+  end
   
 #################
 # Commit -- just send a commit to the configured solr
 #################
   
 when "commit"
+  LOG = opts.masterLogger
+
+  # Crank down the SUSS logging
+
+  susslog = RJack::Logback['org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer']
+  susslog.level = RJack::Logback::WARN
+    
+  pingSolr(opts)
   LOG.info "Commit to #{opts.sussURL}"
   if opts[:dryrun]
     LOG.debug "Using javabin" if opts[:javabin]
@@ -51,6 +83,13 @@ when "commit"
 #####################################################  
 
 when "delete"
+  LOG = opts.masterLogger
+
+  # Crank down the SUSS logging
+
+  susslog = RJack::Logback['org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer']
+  susslog.level = RJack::Logback::WARN
+    
   delfiles = opts.rest
   unless delfiles.size > 0
     LOG.error "command 'delete' needs at least one filename"
@@ -101,6 +140,14 @@ when "delete"
 #####################################################  
 
 when "index"
+
+  LOG = opts.masterLogger
+
+  # Crank down the SUSS logging
+
+  susslog = RJack::Logback['org.apache.solr.client.solrj.impl.StreamingUpdateSolrServer']
+  susslog.level = RJack::Logback::WARN
+    
   marcfiles = opts.rest
   
   unless marcfiles.size > 0
@@ -215,6 +262,7 @@ when "index"
     reader = opts.reader(filename)
     reader.send(method, *args) do |r, i|
       Thread.current[:index] = i
+      r.cachespot[opts] = opts
       
       LOG.debug "Record {} with 001 {}", i, r['001'].value
             
