@@ -4,19 +4,16 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
-    gem.name = "marc2solr"
-    gem.summary = %Q{MARC2Solr: Get MARC into Solr via JRuby}
-    gem.description = %Q{Given a file of MARC records, send them to Sorl for indexing based on a set of MARCSpecs}
+    gem.name = "any2solr"
+    gem.summary = %Q{any2solr: Get data into Solr via JRuby}
+    gem.description = %Q{A basic framework for dealing with sending data to solr based on user-supplied readers/translators}
     gem.email = "bill@dueber.com"
     gem.homepage = "http://github.com/billdueber/marc2solr"
     gem.authors = ["BillDueber"]
     
-    gem.add_dependency 'marc4j4r', '>= 1.3.0'
     gem.add_dependency 'jruby_streaming_update_solr_server', '>=0.5.2'
-    gem.add_dependency 'marcspec', '>= 1.6.6'
     gem.add_dependency 'threach', '>= 0.2.0'
     gem.add_dependency 'jlogger', '>=0.0.4'
-    gem.add_dependency 'library_stdnums', '>=0.2.0'
     gem.add_dependency 'trollop'
     
     gem.add_development_dependency "rspec", ">= 1.2.9"
