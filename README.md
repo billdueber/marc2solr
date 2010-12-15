@@ -1,4 +1,38 @@
-# marc2solr -- get MARC data into Solr
+# any2solr -- get data into Solr
+
+
+`any2solr` is a basic command-line framework designed to make it easier to get data into Solr using JRuby and a thin ruby wrapper around some solrj functionality. 
+
+Essentially, `any2solr` provides a little infrastructure around configuration and command-line arguments.
+
+## OVERVIEW
+
+### Available actions
+
+* `any2solr index` -- index the given data using the given configuration options
+* `any2solr delete` -- delete document associated with each given ID
+* `any2solr commit` -- send a commit to the configured solr
+
+### Code the user must provide (via configuration) for indexing
+
+* A method that returns a data `reader` that responds to `#each` with a complete record (i.e., an object that includes the set of fields from which you'll put data into Solr)
+* A method that takes a record from the `reader` and returns a `Hash` or (even better) a `SolrInputDocument` ready to sent to Solr.
+ 
+### What any2solr provides
+
+`any2solr` provides ways to configure (via configuration file or command-line) the following:
+
+* Target solr installation (machine/port/path, whether to use javabin)
+* Debugging output (output the record, the resulting solr doc, or both)
+* Logging choices (level/location)
+* A --dryrun option for testing without sending anything to solr
+* Choice to clean out Solr before indexing, and/or send a commit afterwards
+* Number of threads to use to process data (--threads) and send data to solr (--sussthreads)
+
+
+
+
+
 
 `marc2Solr` is a package wrapping up functionality in a variety of other gems, designed to make getting data from [MARC21](http://en.wikipedia.org/wiki/MARC_standards) files into [Solr](http://lucene.apache.org/Solr/) as painless as possible.
 
