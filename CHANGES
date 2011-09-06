@@ -1,3 +1,6 @@
+0.2.2 
+  Changed to use jruby_threach instead of vanilla threach
+
 0.2.0
   Added ability to specify custom options in config file (custom "myKey", "myvalue") or 
   on the command line (--custom key="value")

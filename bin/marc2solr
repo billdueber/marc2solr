@@ -5,7 +5,7 @@ require 'marc2solr/marc2solr_custom'
 require 'rubygems'
 require 'pp'
 require 'marcspec'
-require 'threach'
+require 'jruby_threach'
 
 
 

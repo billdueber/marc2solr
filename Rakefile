@@ -14,7 +14,7 @@ begin
     gem.add_dependency 'marc4j4r', '>= 1.3.0'
     gem.add_dependency 'jruby_streaming_update_solr_server', '>=0.5.2'
     gem.add_dependency 'marcspec', '>= 1.6.6'
-    gem.add_dependency 'threach', '>= 0.2.0'
+    gem.add_dependency 'jruby_threach'
     gem.add_dependency 'jlogger', '>=0.0.4'
     gem.add_dependency 'library_stdnums', '>=0.2.0'
     gem.add_dependency 'trollop'
