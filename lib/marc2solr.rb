@@ -2,7 +2,8 @@ require 'rubygems'
 
 require 'jlogger'
 require 'trollop'
-require 'ftools'
+# require 'ftools'
+require 'fileutils'
 require 'jruby_streaming_update_solr_server'
 require 'marc4j4r'
 
@@ -312,7 +313,8 @@ module MARC2Solr
       if VALIDOPTIONS.has_key? methodSymbol
         conf = VALIDOPTIONS[methodSymbol]
         # Zero it out?
-        if conf[:takesNone] and arg.to_a.map{|a| a.downcase}.include? 'none'
+        
+        if conf[:takesNone] and arg.downcase == 'none'
           @config[methodSymbol] = nil 
           return nil
         end

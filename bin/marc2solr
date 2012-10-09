@@ -270,7 +270,9 @@ when "index"
       
       # Send it to solr
       unless opts[:dryrun]
-        suss << doc
+        unless doc['id'] == nil
+          suss << doc
+        end
       end
       
       # Print out the record and/or the document
