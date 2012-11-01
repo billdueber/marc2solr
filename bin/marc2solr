@@ -276,9 +276,11 @@ when "index"
       end
       
       # Print out the record and/or the document
-      opts[:debugfile].puts r   if opts[:printmarc]
-      opts[:debugfile].puts doc if opts[:printdoc]
-      opts[:debugfile].puts "\n\n" if opts[:printdoc] or opts[:printmarc]
+      if doc['id']
+        opts[:debugfile].puts r   if opts[:printmarc]
+        opts[:debugfile].puts doc if opts[:printdoc]
+        opts[:debugfile].puts "\n\n" if opts[:printdoc] or opts[:printmarc]
+      end
       
       if Thread.current[:index] % opts[:logbatchsize] == 0
         pace  = Thread.current[:index] / (Time.new.to_f - start) 

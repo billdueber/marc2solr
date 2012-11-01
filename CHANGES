@@ -1,3 +1,6 @@
+0.2.4
+  Don't try to output a document/record for debugging if 'id' is missing or nil
+  
 0.2.3
   Don't index a document if 'id' is missing or nil
   
