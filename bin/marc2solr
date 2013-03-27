@@ -151,7 +151,7 @@ when "index"
   marcfiles = opts.rest
   
   unless marcfiles.size > 0
-    LOG.error "command 'delete' needs at least one marc file to index"
+    LOG.error "command 'index' needs at least one marc file to index"
     puts "\n\nERROR: command 'index' needs at least one filename"
     opts.print_command_help('index')
   end
