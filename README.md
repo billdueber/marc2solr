@@ -1,5 +1,11 @@
 # marc2solr -- get MARC data into Solr
 
+> **Deprecated** `marc2solr` was very useful, but I've collaborated with Jonathan Rochkind on a new, improvide JRuby-based indexing framework called [`traject`](https://github.com/traject-project/). Use it instead
+
+___
+
+___
+
 `marc2Solr` is a package wrapping up functionality in a variety of other gems, designed to make getting data from [MARC21](http://en.wikipedia.org/wiki/MARC_standards) files into [Solr](http://lucene.apache.org/Solr/) as painless as possible.
 
 `marc2Solr` is based on [Solrmarc](http://code.google.com/p/solrmarc/), the excellent Java-based program that does more or less the same thing. `marc2Solr` is *not* a drop-in replacement for Solrmarc, but can do most of the same things. A naive program to translate solrmarc config files to marc2solr config files is included. It's called -- wait for it -- solrmarc_to_marc2solr.
