@@ -1,6 +1,6 @@
 # marc2solr -- get MARC data into Solr
 
-> **Deprecated** `marc2solr` was very useful, but I've collaborated with Jonathan Rochkind on a new, improvide JRuby-based indexing framework called [`traject`](https://github.com/traject-project/). Use it instead
+> **Deprecated** `marc2solr` was very useful, but I've collaborated with Jonathan Rochkind on a new, improved JRuby-based indexing framework called [`traject`](https://github.com/traject-project/). Use it instead
 
 ___
 
